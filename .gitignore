@@ -13,3 +13,9 @@ mlruns/
 .env
 .env.*
 .vscode/
+
+# Generated experiment and prediction files
+mlflow.db
+*.db
+predictions/
+reports/
