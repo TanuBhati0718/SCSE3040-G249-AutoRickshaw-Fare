@@ -15,7 +15,7 @@ mlruns/
 .vscode/
 
 # Generated experiment and prediction files
-mlflow.db
 *.db
+!mlflow.db
 predictions/
 reports/

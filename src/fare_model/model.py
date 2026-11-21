@@ -70,7 +70,6 @@ def train_model(config_path="params.yaml"):
 
     # Configure MLflow with a local SQLite database.
     mlflow.set_tracking_uri("sqlite:///mlflow.db")
-    mlflow.set_registry_uri("sqlite:///mlflow.db")
 
     mlflow.set_experiment(config["tracking"]["experiment_name"])
 
@@ -100,13 +99,10 @@ def train_model(config_path="params.yaml"):
         model_path = models_dir / "model.joblib"
         joblib.dump(pipeline, model_path)
 
-        # Log the model and register it in MLflow.
+        # Log the model artifact without registering a version yet.
         mlflow.sklearn.log_model(
             sk_model=pipeline,
             artifact_path="model",
-            registered_model_name=config["tracking"][
-                "registered_model_name"
-            ],
         )
 
         print("\nModel training completed successfully!")
