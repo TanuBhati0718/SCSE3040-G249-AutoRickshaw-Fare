@@ -160,6 +160,18 @@ source .venv312/bin/activate
 python -m pytest -q
 ```
 
+---
+
+### Stage 2 Checklist
+
+- [x] Cleaning code (`params.yaml`, `src/fare_model/data.py`)
+- [x] Train v1 with MLflow tracking (logs `data_sha256`, `mae`)
+- [x] Try 3+ settings (3 valid hyperparameter runs)
+- [x] Register best model + `@champion` alias (v1 registered)
+- [x] Write tests (4 TestClient tests passing)
+- [x] `mlflow.db` committed to GitHub with 3+ runs & registered model
+- [x] `reports/findings.yaml` tracking fields filled
+
 ## Next Stages
 - Stage 2: Cleaning code, MLflow tracking, model registration.
 - Stage 3: FastAPI service, Docker, CI/CD.
