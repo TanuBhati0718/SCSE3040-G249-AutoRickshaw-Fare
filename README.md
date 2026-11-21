@@ -95,6 +95,32 @@ curl -X POST http://127.0.0.1:8000/predict \
   -d '{"distance_km":5.2,"wait_min":4,"passengers":2,"hour":14,"luggage_bags":1,"fuel_price_rs":105,"booking":"app","zone":"Market"}'
 ```
 
+### Task 3 — Try 3+ settings
+
+Added `model_config` and `run_name` parameters to `train_model()` to support multiple hyperparameter configurations. Ran two additional training runs with different settings.
+
+Files: `src/fare_model/model.py`.
+
+Result: 3 runs total — RandomForest_v1 (MAE 17.5171), RandomForest_v2 (MAE 17.9935), RandomForest_v3 (MAE 17.1684); `python -m pytest -q` passes 4 tests.
+
+```bash
+source .venv312/bin/activate
+python -m src.fare_model.model --help  # shows new params
+python -m pytest -q
+```
+
+View all runs:
+
+```bash
+mlflow ui --backend-store-uri sqlite:///mlflow.db --host 127.0.0.1 --port 5000
+```
+
+Service:
+
+```bash
+uvicorn app.main:app --host 127.0.0.1 --port 8000
+```
+
 ## Next Stages
 - Stage 2: Cleaning code, MLflow tracking, model registration.
 - Stage 3: FastAPI service, Docker, CI/CD.

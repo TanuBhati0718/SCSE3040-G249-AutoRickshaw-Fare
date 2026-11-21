@@ -28,7 +28,11 @@ def get_file_sha256(file_path):
     return sha256.hexdigest()
 
 
-def train_model(config_path="params.yaml"):
+def train_model(
+    config_path="params.yaml",
+    model_config=None,
+    run_name="RandomForest_v1",
+):
     """Train, evaluate, save and track the fare prediction model."""
 
     from src.fare_model.data import load_params
@@ -49,14 +53,17 @@ def train_model(config_path="params.yaml"):
         random_state=config["data"]["random_state"],
     )
 
-    # Read model settings.
-    model_config = config["model"]
+    # Read model settings, allowing caller overrides.
+    resolved_model_config = {
+        **config["model"],
+        **(model_config or {}),
+    }
 
     regressor = RandomForestRegressor(
-        n_estimators=model_config["n_estimators"],
-        max_depth=model_config["max_depth"],
-        min_samples_split=model_config["min_samples_split"],
-        random_state=model_config["random_state"],
+        n_estimators=resolved_model_config["n_estimators"],
+        max_depth=resolved_model_config["max_depth"],
+        min_samples_split=resolved_model_config["min_samples_split"],
+        random_state=resolved_model_config["random_state"],
         n_jobs=-1,
     )
 
@@ -73,7 +80,7 @@ def train_model(config_path="params.yaml"):
 
     mlflow.set_experiment(config["tracking"]["experiment_name"])
 
-    with mlflow.start_run(run_name="RandomForest_v1") as run:
+    with mlflow.start_run(run_name=run_name) as run:
 
         # Train the model.
         pipeline.fit(X_train, y_train)
@@ -83,7 +90,7 @@ def train_model(config_path="params.yaml"):
         mae = mean_absolute_error(y_test, predictions)
 
         # Log parameters and evaluation results.
-        mlflow.log_params(model_config)
+        mlflow.log_params(resolved_model_config)
         mlflow.log_param("test_size", config["data"]["test_size"])
         mlflow.log_param("random_state", config["data"]["random_state"])
         mlflow.log_param("data_sha256", data_sha256)
