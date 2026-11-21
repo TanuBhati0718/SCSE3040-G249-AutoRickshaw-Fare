@@ -17,5 +17,6 @@ mlruns/
 # Generated experiment and prediction files
 *.db
 !mlflow.db
+!reports/findings.yaml
 predictions/
 reports/

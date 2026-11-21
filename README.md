@@ -34,13 +34,13 @@ dvc pull   # fetch data files tracked by DVC
 - All four members listed in this README.
 - DVC initialized; `train.csv` and `later.csv` are tracked (`*.dvc` files present).
 - Data investigation script `src/data_investigation.py` runs the seven required checks.
-- Findings recorded in `findings.yaml` under the `data_issues` section.
+- Findings recorded in `reports/findings.yaml` under the `data_issues` section.
 
 ## How to Run the Data Investigation
 ```bash
 python -m src.data_investigation
 ```
-The script prints a summary of the seven data problems (leaking column, sentinel values, duplicate rows, etc.) and updates `findings.yaml`.
+The script prints a summary of the seven data problems (leaking column, sentinel values, duplicate rows, etc.) and updates `reports/findings.yaml`.
 
 ## Stage 2: Cleaning and MLflow tracking
 
@@ -123,9 +123,9 @@ uvicorn app.main:app --host 127.0.0.1 --port 8000
 
 ### Task 4 — Register best model + champion alias
 
-Registered the best run (RandomForest_v3, MAE 17.1684) as model version 1 and set the `champion` alias. Updated `findings.yaml` tracking fields.
+Registered the best run (RandomForest_v3, MAE 17.1684) as model version 1 and set the `champion` alias. Updated `reports/findings.yaml` tracking fields.
 
-Files: `src/fare_model/model.py`, `findings.yaml`, `mlflow.db`, `models/model.joblib`.
+Files: `src/fare_model/model.py`, `reports/findings.yaml`, `mlflow.db`, `models/model.joblib`.
 
 Result: Registered model `MP072_AutoRickshaw_Fare_Model` version 1 with `@champion` alias pointing to run `45028a3dcaab4fe38e0c288408a6fa59` (MAE 17.1684); `python -m pytest -q` passes 4 tests.
 
