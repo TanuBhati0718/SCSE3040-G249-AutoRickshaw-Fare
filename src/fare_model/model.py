@@ -5,6 +5,7 @@ import hashlib
 import joblib
 import mlflow
 import mlflow.sklearn
+from mlflow.tracking import MlflowClient
 
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_absolute_error
@@ -123,5 +124,106 @@ def train_model(
         return pipeline, mae, run.info.run_id
 
 
+def register_best_model(
+    config_path="params.yaml",
+    experiment_name=None,
+    alias="champion",
+):
+    """Register the best run as model version 1 and set the champion alias."""
+    from src.fare_model.data import load_params
+
+    config = load_params(config_path)
+    tracking_uri = "sqlite:///mlflow.db"
+
+    mlflow.set_tracking_uri(tracking_uri)
+    mlflow.set_registry_uri(tracking_uri)
+
+    resolved_experiment_name = (
+        experiment_name or config["tracking"]["experiment_name"]
+    )
+    experiment = mlflow.get_experiment_by_name(resolved_experiment_name)
+
+    if experiment is None:
+        raise ValueError(
+            f"MLflow experiment not found: {resolved_experiment_name}"
+        )
+
+    best_runs = mlflow.search_runs(
+        experiment_ids=[experiment.experiment_id],
+        filter_string=(
+            "attributes.status = 'FINISHED' and metrics.mae >= 0"
+        ),
+        order_by=["metrics.mae ASC"],
+        max_results=1,
+    )
+
+    if best_runs.empty:
+        raise ValueError(
+            "No finished MLflow runs with an mae metric found."
+        )
+
+    best_run = best_runs.iloc[0]
+    best_run_id = best_run["run_id"]
+    best_mae = float(best_run["metrics.mae"])
+
+    model_name = config["tracking"]["registered_model_name"]
+    model_version = mlflow.register_model(
+        model_uri=f"runs:/{best_run_id}/model",
+        name=model_name,
+    )
+
+    client = MlflowClient(
+        tracking_uri=tracking_uri,
+        registry_uri=tracking_uri,
+    )
+    client.set_registered_model_alias(
+        model_name,
+        alias,
+        model_version.version,
+    )
+
+    champion = mlflow.sklearn.load_model(
+        f"models:/{model_name}@{alias}"
+    )
+    models_dir = Path("models")
+    models_dir.mkdir(parents=True, exist_ok=True)
+    joblib.dump(champion, models_dir / "model.joblib")
+
+    print("\nChampion model registered successfully!")
+    print(f"Best run ID: {best_run_id}")
+    print(f"Best MAE: {best_mae:.4f}")
+    print(f"Registered model: {model_name}")
+    print(f"Version: {model_version.version}")
+    print(f"Alias: {alias}")
+    print(f"Model saved at: {models_dir / 'model.joblib'}")
+
+    return model_version.version, best_run_id, best_mae
+
+
 if __name__ == "__main__":
-    train_model()
+    import argparse
+    import json
+
+    parser = argparse.ArgumentParser(description="Train fare prediction model with MLflow tracking")
+    parser.add_argument(
+        "--model-config",
+        type=str,
+        default=None,
+        help="JSON string of model hyperparameter overrides, e.g. '{\"n_estimators\": 100, \"max_depth\": 8}'"
+    )
+    parser.add_argument(
+        "--run-name",
+        type=str,
+        default="RandomForest_v1",
+        help="MLflow run name"
+    )
+    parser.add_argument(
+        "--config-path",
+        type=str,
+        default="params.yaml",
+        help="Path to params.yaml"
+    )
+    args = parser.parse_args()
+
+    model_config = json.loads(args.model_config) if args.model_config else None
+    train_model(config_path=args.config_path, model_config=model_config, run_name=args.run_name)

@@ -121,6 +121,32 @@ Service:
 uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
 
+### Task 4 — Register best model + champion alias
+
+Registered the best run (RandomForest_v3, MAE 17.1684) as model version 1 and set the `champion` alias. Updated `findings.yaml` tracking fields.
+
+Files: `src/fare_model/model.py`, `findings.yaml`, `mlflow.db`, `models/model.joblib`.
+
+Result: Registered model `MP072_AutoRickshaw_Fare_Model` version 1 with `@champion` alias pointing to run `45028a3dcaab4fe38e0c288408a6fa59` (MAE 17.1684); `python -m pytest -q` passes 4 tests.
+
+```bash
+source .venv312/bin/activate
+python -m src.fare_model.model  # baseline
+python -m pytest -q
+```
+
+View registered model:
+
+```bash
+mlflow ui --backend-store-uri sqlite:///mlflow.db --host 127.0.0.1 --port 5000
+```
+
+Service (uses champion model):
+
+```bash
+uvicorn app.main:app --host 127.0.0.1 --port 8000
+```
+
 ## Next Stages
 - Stage 2: Cleaning code, MLflow tracking, model registration.
 - Stage 3: FastAPI service, Docker, CI/CD.
