@@ -4,12 +4,10 @@
 This repository contains a Python project that estimates auto‑rickshaw fares based on a set of features (distance, wait time, passengers, hour of day, luggage, fuel price, booking channel, and zone). The work follows the multi‑stage workflow defined in the course assignment.
 
 ## Team Members
-- **Member 1:** Alice Doe
-- **Member 2:** Bob Smith
-- **Member 3:** Carol Lee
-- **Member 4:** Dave Patel
+- **Member 1:** Kanishk Dhiman
+- **Member 2:** Tanu Bhati
 
-> *(Replace the placeholder names above with the actual team members.)*
+
 
 ## Data
 - Raw training data: `data/raw/train.csv`
