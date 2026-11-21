@@ -147,6 +147,19 @@ Service (uses champion model):
 uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
 
+### Task 5 — Write tests
+
+Tests satisfy handbook requirements: 3+ pytest tests with at least one TestClient test.
+
+Files: `tests/test_pipeline.py`.
+
+Result: 4 tests using TestClient — `GET /health`, `POST /predict` valid input, rejects negative distance, rejects high fuel price; all pass.
+
+```bash
+source .venv312/bin/activate
+python -m pytest -q
+```
+
 ## Next Stages
 - Stage 2: Cleaning code, MLflow tracking, model registration.
 - Stage 3: FastAPI service, Docker, CI/CD.
