@@ -1,181 +1,150 @@
-# AutoRickshaw Fare Estimation (SCSE3040‑G249)
+# AutoRickshaw Fare Estimation (SCSE3040-G249)
 
 ## Project Overview
-This repository contains a Python project that estimates auto‑rickshaw fares based on a set of features (distance, wait time, passengers, hour of day, luggage, fuel price, booking channel, and zone). The work follows the multi‑stage workflow defined in the course assignment.
+
+This repository contains a Python-based machine learning project that estimates auto-rickshaw fares using features such as distance, waiting time, passengers, hour of day, luggage, fuel price, booking channel, and zone.
+
+The project follows the multi-stage MLOps workflow defined in the SCSE3040 mini-project assignment.
 
 ## Team Members
-- **Member 1:** Kanishk Dhiman
-- **Member 2:** Tanu Bhati
 
-
+- **Member 1:** Kanishk Dhiman
+- **Member 2:** Tanu Bhati
 
 ## Data
+
 - Raw training data: `data/raw/train.csv`
 - Later data for exploratory analysis: `data/raw/later.csv`
-- Hold‑out features for final evaluation: `data/raw/holdout_features.csv`
+- Hold-out features for final evaluation: `data/raw/holdout_features.csv`
 
-DVC is used to version‑control these large CSV files.
+DVC is used to version-control the large CSV files.
 
 ## Setup
+
 ```bash
-# Clone the repo
-git clone <repo‑url>
+# Clone the repository
+git clone <repo-url>
 cd SCSE3040-G249-AutoRickshaw-Fare
 
 # Install dependencies
 pip install -r requirements.txt
 
-# Initialize DVC (already done in the repo)
-dvc pull   # fetch data files tracked by DVC
+# Download DVC-tracked data
+dvc pull
 ```
 
-## Stage 1 Checklist (completed)
-- Repository created and pushed to GitHub.
-- All four members listed in this README.
-- DVC initialized; `train.csv` and `later.csv` are tracked (`*.dvc` files present).
-- Data investigation script `src/data_investigation.py` runs the seven required checks.
-- Findings recorded in `reports/findings.yaml` under the `data_issues` section.
+---
 
-## How to Run the Data Investigation
+## Stage 1: Data Investigation
+
+### Stage 1 Checklist
+
+- [x] Repository created and pushed to GitHub.
+- [x] Both participating members listed in this README.
+- [x] DVC initialized.
+- [x] `train.csv` and `later.csv` tracked using DVC.
+- [x] Data investigation script created.
+- [x] Seven required data checks implemented.
+- [x] Findings recorded in `reports/findings.yaml` under `data_issues`.
+
+### Run Data Investigation
+
 ```bash
 python -m src.data_investigation
 ```
-The script prints a summary of the seven data problems (leaking column, sentinel values, duplicate rows, etc.) and updates `reports/findings.yaml`.
 
-## Stage 2: Cleaning and MLflow tracking
+The script investigates seven data problems, including leaking columns, sentinel values, and duplicate rows, and updates `reports/findings.yaml`.
 
-### Task 1 — Cleaning code
+---
 
-Cleaning is configuration-driven and works on an in-memory copy, so the raw CSV is unchanged. It removes duplicate rows, replaces the `9999` distance sentinel, and corrects fares entered ten times too large.
+## Stage 2: Data Cleaning and MLflow Tracking
 
-Files: `params.yaml`, `src/fare_model/data.py`.
+### Task 1 — Cleaning Code
 
-Result: 1051 raw rows become 1000 cleaned rows; `python -m pytest -q` passes 4 tests.
+Implemented configuration-driven data cleaning using an in-memory copy, preserving the original raw CSV files.
+
+Cleaning operations include:
+- Removing duplicate rows.
+- Replacing the `9999` distance sentinel.
+- Correcting fares entered ten times too large.
+
+**Files:** `params.yaml`, `src/fare_model/data.py`
+
+**Result:** 1051 raw rows were reduced to 1000 cleaned rows. Four pytest tests passed.
 
 ```bash
-source .venv312/bin/activate
 python -m pytest -q
 ```
 
-Service: `uvicorn app.main:app --host 127.0.0.1 --port 8000`
+### Task 2 — Train v1 with MLflow Tracking
 
-### Task 2 — Train v1 with MLflow tracking
+Implemented the first tracked model training run.
 
-Added the first tracked training run. The run logs `data_sha256` and `mae`, saves `models/model.joblib`, and stores its metadata in `mlflow.db`. Model registration is added in a later task.
+The run logs:
+- `data_sha256`
+- `mae`
+- Model artifacts
 
-Files: `src/fare_model/model.py`, `.gitignore`, `mlflow.db`, `models/model.joblib`.
+The trained model is saved as `models/model.joblib`, and experiment metadata is stored in `mlflow.db`.
 
-Result: run `b4fed6fe016140c5a0411a3da97b74b7` (`RandomForest_v1`) finished with MAE `17.5171`; `python -m pytest -q` passes 4 tests.
+**Files:** `src/fare_model/model.py`, `.gitignore`, `mlflow.db`, `models/model.joblib`
+
+**Result:**
+- Run name: `RandomForest_v1`
+- Run ID: `b4fed6fe016140c5a0411a3da97b74b7`
+- MAE: `17.5171`
+- Four pytest tests passed.
 
 ```bash
-source .venv312/bin/activate
 python -m src.fare_model.model
 python -m pytest -q
 ```
 
-View the experiment:
+View the MLflow experiment:
 
 ```bash
 mlflow ui --backend-store-uri sqlite:///mlflow.db --host 127.0.0.1 --port 5000
 ```
 
-Service:
+### Task 3 — Try 3+ Settings
 
-```bash
-uvicorn app.main:app --host 127.0.0.1 --port 8000
-```
+Added `model_config` and `run_name` parameters to `train_model()` to support multiple hyperparameter configurations.
 
-Use it:
+Three training runs were completed.
 
-```bash
-curl http://127.0.0.1:8000/health
+**File:** `src/fare_model/model.py`
 
-curl -X POST http://127.0.0.1:8000/predict \
-  -H "Content-Type: application/json" \
-  -d '{"distance_km":5.2,"wait_min":4,"passengers":2,"hour":14,"luggage_bags":1,"fuel_price_rs":105,"booking":"app","zone":"Market"}'
-```
+**Results:**
 
-### Task 3 — Try 3+ settings
+| Run | MAE |
+|---|---:|
+| RandomForest_v1 | 17.5171 |
+| RandomForest_v2 | 17.9935 |
+| RandomForest_v3 | 17.1684 |
 
-Added `model_config` and `run_name` parameters to `train_model()` to support multiple hyperparameter configurations. Ran two additional training runs with different settings.
+Four pytest tests passed.
 
-Files: `src/fare_model/model.py`.
+### Task 4 — Register Best Model and Champion Alias
 
-Result: 3 runs total — RandomForest_v1 (MAE 17.5171), RandomForest_v2 (MAE 17.9935), RandomForest_v3 (MAE 17.1684); `python -m pytest -q` passes 4 tests.
+Registered the best-performing run, RandomForest_v3, in the MLflow Model Registry.
 
-```bash
-source .venv312/bin/activate
-python -m src.fare_model.model --help  # shows new params
-python -m pytest -q
-```
+**Registered model:** `MP072_AutoRickshaw_Fare_Model`
 
-View all runs:
+**Version:** 1
 
-```bash
-mlflow ui --backend-store-uri sqlite:///mlflow.db --host 127.0.0.1 --port 5000
-```
+**Alias:** `champion`
 
-Service:
+**Run ID:** `45028a3dcaab4fe38e0c288408a6fa59`
 
-```bash
-uvicorn app.main:app --host 127.0.0.1 --port 8000
-```
+**Best recorded MAE:** `17.1684`
 
-### Task 4 — Register best model + champion alias
+Updated the tracking fields in `reports/findings.yaml`.
 
-Registered the best run (RandomForest_v3, MAE 17.1684) as model version 1 and set the `champion` alias. Updated `reports/findings.yaml` tracking fields.
+### Task 5 — Write Tests
 
-Files: `src/fare_model/model.py`, `reports/findings.yaml`, `mlflow.db`, `models/model.joblib`.
+Created automated tests using FastAPI TestClient.
 
-Result: Registered model `MP072_AutoRickshaw_Fare_Model` version 1 with `@champion` alias pointing to run `45028a3dcaab4fe38e0c288408a6fa59` (MAE 17.1684); `python -m pytest -q` passes 4 tests.
+**File:** `tests/test_pipeline.py`
 
-```bash
-source .venv312/bin/activate
-python -m src.fare_model.model  # baseline
-python -m pytest -q
-```
-
-View registered model:
-
-```bash
-mlflow ui --backend-store-uri sqlite:///mlflow.db --host 127.0.0.1 --port 5000
-```
-
-Service (uses champion model):
-
-```bash
-uvicorn app.main:app --host 127.0.0.1 --port 8000
-```
-
-### Task 5 — Write tests
-
-Tests satisfy handbook requirements: 3+ pytest tests with at least one TestClient test.
-
-Files: `tests/test_pipeline.py`.
-
-Result: 4 tests using TestClient — `GET /health`, `POST /predict` valid input, rejects negative distance, rejects high fuel price; all pass.
-
-```bash
-source .venv312/bin/activate
-python -m pytest -q
-```
-
----
-
-### Stage 2 Checklist
-
-- [x] Cleaning code (`params.yaml`, `src/fare_model/data.py`)
-- [x] Train v1 with MLflow tracking (logs `data_sha256`, `mae`)
-- [x] Try 3+ settings (3 valid hyperparameter runs)
-- [x] Register best model + `@champion` alias (v1 registered)
-- [x] Write tests (4 TestClient tests passing)
-- [x] `mlflow.db` committed to GitHub with 3+ runs & registered model
-- [x] `reports/findings.yaml` tracking fields filled
-
-## Next Stages
-- Stage 2: Cleaning code, MLflow tracking, model registration.
-- Stage 3: FastAPI service, Docker, CI/CD.
-- Stage 4: PSI analysis, retraining, final submission.
-
----
-*Generated by Antigravity assistant to provide a clean, informative README.*
+Four tests cover:
+1. `GET /health` endpoint.
