@@ -14,6 +14,8 @@ preprocessing:
     - fare_paid_receipt_rs
   sentinel_distance: 9999
   remove_duplicates: true
+  target_typo_threshold: 1000
+  target_typo_factor: 10
 
 model:
   algorithm: RandomForestRegressor

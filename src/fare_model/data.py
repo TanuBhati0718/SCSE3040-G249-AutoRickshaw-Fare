@@ -47,30 +47,55 @@ def load_csv(file_path):
     return pd.read_csv(file_path)
 
 
-def clean_training_data(df):
+def clean_training_data(df, config=None):
     """
-    Apply confirmed basic cleaning to a copy of the training data.
+    Apply confirmed cleaning to a copy of the training data.
 
+    Preprocessing settings are read from params.yaml.
     The original CSV remains unchanged.
     """
+    if config is None:
+        config = load_params()
+
+    preprocessing = config.get("preprocessing", {})
     data = df.copy()
 
+    required_columns = {"distance_km", TARGET_COLUMN}
+    missing_columns = required_columns.difference(data.columns)
+
+    if missing_columns:
+        raise ValueError(
+            f"Required columns are missing: {sorted(missing_columns)}"
+        )
+
     # Remove exact duplicate rows.
-    data = data.drop_duplicates()
+    if preprocessing.get("remove_duplicates", True):
+        data = data.drop_duplicates()
 
     # Convert the known distance sentinel into a missing value.
     data["distance_km"] = pd.to_numeric(
         data["distance_km"], errors="coerce"
     )
-    data.loc[data["distance_km"] == 9999, "distance_km"] = float("nan")
+    sentinel_distance = preprocessing.get("sentinel_distance", 9999)
+    data.loc[
+        data["distance_km"] == sentinel_distance, "distance_km"
+    ] = float("nan")
 
-    # Ensure the target is numeric and remove rows without a target.
+    # Ensure the target is numeric.
     data[TARGET_COLUMN] = pd.to_numeric(
         data[TARGET_COLUMN], errors="coerce"
     )
-    data = data.dropna(subset=[TARGET_COLUMN])
 
-    # Keep only rows with a valid target.
+    typo_threshold = preprocessing.get("target_typo_threshold")
+    typo_factor = preprocessing.get("target_typo_factor", 10)
+
+    if typo_threshold is not None:
+        typo_mask = data[TARGET_COLUMN] > typo_threshold
+        data.loc[typo_mask, TARGET_COLUMN] = (
+            data.loc[typo_mask, TARGET_COLUMN] / typo_factor
+        )
+
+    data = data.dropna(subset=[TARGET_COLUMN])
     data = data.reset_index(drop=True)
 
     return data
@@ -133,7 +158,7 @@ def load_and_prepare_training_data(config_path="params.yaml"):
     train_path = config["data"]["train_path"]
 
     raw_data = load_csv(train_path)
-    cleaned_data = clean_training_data(raw_data)
+    cleaned_data = clean_training_data(raw_data, config)
 
     X, y = prepare_features_and_target(cleaned_data)
 
